@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles/styles.css">
+  <script defer src="scripts/script.js"></script>
+  <script defer src="scripts/history.js"></script> <!-- Added history.js -->
+  <title>Concentration Timer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app" class="container">
+    <header class="header">
+      <h1 id="headerTitle">Deppfuckus Timer Application</h1>
+    </header>
+    <main>
+      <form id="userNameForm" class="timer-form" onsubmit="loadUserRecords(); return false;">
+        <input type="text" id="userName" placeholder="Enter Your Name" required>
+        <button class="tab-button" type="submit">Submit</button>
+      </form>
+      <div id="tabs" class="tabs" style="display: none;">
+        <button class="tab-button" onclick="showTab('today')">Today's Record</button>
+        <button class="tab-button" onclick="showTab('history')">History</button>
+        <button class="tab-button" onclick="showTab('chart')">Chart</button>
+      </div>
+      <div id="today" class="tab-content" style="display: none;">
+        <h2>Today's Record</h2>
+        <form id="timerForm" class="timer-form">
+          <input type="text" id="roundName" placeholder="Round Name" required disabled>
+          <input type="number" id="minutes" placeholder="Minutes" disabled>
+          <input type="number" id="seconds" placeholder="Seconds" disabled>
+          <div class="button-group">
+            <button type="button" class="button start-button" onclick="startTimer()" disabled>Start Timer</button>
+            <button type="button" class="button stop-button" onclick="stopTimer()" disabled>Stop Timer</button>
+          </div>
+        </form>
+        <div id="timerDisplay" class="timer-display">00:00</div>
+        <table id="todayRecordsTable" class="records-table">
+          <thead>
+            <tr>
+              <th>Round Name</th>
+              <th>Success</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="todayRecords"></tbody>
+        </table>
+      </div>
+      <div id="history" class="tab-content" style="display: none;">
+        <h2>History</h2>
+        <table id="historyTable" class="records-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Suc DeppFuck</th>
+              <th>Fail DeppFuck</th>
+              <th>TotalSpentTime</th>
+            </tr>
+          </thead>
+          <tbody id="historyRecords"></tbody>
+        </table>
+      </div>
+      <div id="chart" class="tab-content" style="display: none;">
+        <h2>Chart</h2>
+        <canvas id="chartCanvas"></canvas>
+      </div>
+      <div id="detailsPopup" class="popup" style="display: none;">
+        <div class="popup-content">
+          <span class="close-button" onclick="closePopup()">&times;</span>
+          <h2 id="popupDate"></h2>
+          <table id="detailsTable" class="records-table">
+            <thead>
+              <tr>
+                <th>Round Name</th>
+                <th>Status</th>
+                <th>Duration</th>
+              </tr>
+            </thead>
+            <tbody id="detailsRecords"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
