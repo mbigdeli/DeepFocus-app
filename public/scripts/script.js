@@ -1,4 +1,5 @@
 let timer; // Timer variable to hold the countdown interval
+let worker;
 
 function loadUserRecords() {
   const userName = document.getElementById('userName').value;
@@ -23,6 +24,12 @@ function loadUserRecords() {
   loadHistoryRecords(userName);
 }
 
+function playRingtone() {
+  console.log('Playing ringtone');
+  const audio = new Audio('ringtone.mp3'); // Create a new audio object for the ringtone
+  audio.play(); // Play the audio
+}
+
 
 function showTab(tabName) {
   console.log('Switching to tab:', tabName);
@@ -33,6 +40,7 @@ function showTab(tabName) {
   // Show the selected tab content
   document.getElementById(tabName).style.display = 'block';
 }
+
 
 function startTimer() {
   const userName = document.getElementById('userName').value;
@@ -50,76 +58,93 @@ function startTimer() {
     return;
   }
 
-  function playRingtone() {
-    console.log('Playing ringtone');
-    const audio = new Audio('ringtone.mp3'); // Create a new audio object for the ringtone
-    audio.play(); // Play the audio
-  }
-
   // Disable start button
   document.querySelector('.start-button').disabled = true;
   document.querySelector('.stop-button').disabled = false;
+  document.getElementById('roundName').disabled = true;
+  document.getElementById('minutes').disabled = true;
+  document.getElementById('seconds').disabled = true;
 
   // Calculate total time in milliseconds
   const totalTime = (minutes * 60 + seconds) * 1000;
   console.log("total time:",totalTime)
-  endTime = Date.now() + totalTime;
-  console.log("end time:",endTime)
-
-  function updateTimer() {
-    const remainingTime = endTime - Date.now();
-
-
-    if (remainingTime <= 0) {
-      // Timer is done
-      clearTimeout(timer);
-      playRingtone();
-      setTimeout(() => {
-        alert('Time is up!');
-        saveResult(userName, roundName, true, minutes, seconds);
-        document.querySelector('.start-button').disabled = false;
-        document.querySelector('.stop-button').disabled = true;
-      }, 1000);
-      return;
-    }
-
-    // Calculate minutes and seconds
-    const remainingSeconds = remainingTime / 1000;
-    const displayMinutes = Math.floor(remainingSeconds / 60);
-    const displaySeconds = Math.floor(remainingSeconds % 60);
-    updateTimerDisplay(displayMinutes, displaySeconds);
-
-    // Schedule the next update
-    timer = setTimeout(updateTimer, 1000);
-  }
-
-  // Start updating the timer
-  updateTimer();
+  // Start the worker
+  startWorkerTimer(totalTime);
+  console.log("worker started")
 }
 
+function startWorkerTimer(timeInMilliseconds) {
+  const userName = document.getElementById('userName').value;
+  const roundName = document.getElementById('roundName').value;
+  // Check if the browser supports Web Workers
+  if (typeof Worker !== "undefined") {
+    // If a worker already exists, terminate it
+    if (worker) {
+      worker.terminate();
+    }
 
+    // Create a new Web Worker instance
+    worker = new Worker('scripts/worker.js');
 
+    // Send a message to the worker to start the countdown
+    worker.postMessage({ start: true, timeLeft: timeInMilliseconds });
+    const saveMin = Math.floor(timeInMilliseconds / 60000);
+    const saveSec = Math.floor((timeInMilliseconds % 60000) / 1000);
+    // Handle messages received from the worker
+    worker.onmessage = function (e) {
+      if (e.data.done) {
+        // Timer is done, handle completion
+        playRingtone();
+        saveResult(userName, roundName, true, saveMin, saveSec);
 
-
+        setTimeout(() => {
+          alert('Time is up!');
+          document.querySelector('.start-button').disabled = false;
+          document.querySelector('.stop-button').disabled = true;
+          document.getElementById('roundName').disabled = false;
+          document.getElementById('minutes').disabled = false;
+          document.getElementById('seconds').disabled = false;
+        }, 1000);
+      } else {
+        // Update the remaining time on the UI
+        const remainingSeconds = Math.floor(e.data.timeLeft / 1000);
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        updateTimerDisplay(minutes, seconds);
+      }
+    };
+  } else {
+    document.getElementById('roundName').disabled = false;
+    document.getElementById('minutes').disabled = false;
+    document.getElementById('seconds').disabled = false;
+    console.error("Web Workers are not supported in your browser.");
+  }
+}
 
 function updateTimerDisplay(minutes, seconds) {
   document.getElementById('timerDisplay').innerText =
     `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-
 function stopTimer() {
-  clearInterval(timer); // Clear the countdown timer
-  console.log('Timer stopped by user');
-  document.querySelector('.start-button').disabled = false; // Re-enable start button
-  document.querySelector('.stop-button').disabled = true; // Disable stop button
+  if (worker) {
+    worker.terminate(); // Terminate the worker when stopping the timer
+    worker = null;
+  }
 
-  // Get user inputs to save the failed result
+  document.querySelector('.start-button').disabled = false;
+  document.querySelector('.stop-button').disabled = true;
+  document.getElementById('roundName').disabled = false;
+  document.getElementById('minutes').disabled = false;
+  document.getElementById('seconds').disabled = false;
+
   const userName = document.getElementById('userName').value;
   const roundName = document.getElementById('roundName').value;
   const minutes = parseInt(document.getElementById('minutes').value) || 0;
   const seconds = parseInt(document.getElementById('seconds').value) || 0;
   saveResult(userName, roundName, false, minutes, seconds); // Save result as failed
+  // Reset the timer display
+  updateTimerDisplay(0, 0);
 }
 
 function saveResult(userName, roundName, success, minutes, seconds) {
@@ -162,14 +187,6 @@ function loadTodayRecords(userName) {
     })
     .catch(error => console.error('Error loading today\'s records:', error));
 }
-
-// function updateTimerDisplay(seconds) {
-//   // Calculate minutes and seconds from the total remaining seconds
-//   const minutes = Math.floor(seconds / 60);
-//   const remainingSeconds = seconds % 60;
-//   // Update the timer display in MM:SS format
-//   document.getElementById('timerDisplay').innerText = `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
-// }
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Document loaded, waiting for user name input');
